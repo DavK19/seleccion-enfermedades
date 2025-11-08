@@ -9,8 +9,32 @@ interface Enfermedad {
 
 export default function Home() {
   const [enfermedades, setEnfermedades] = useState<Enfermedad[]>([]);
-  const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
+  const [seleccionadas, setSeleccionadas] = useState<string[]>(() => {
+    // Cargar del localStorage al inicializar el estado
+    if (typeof window !== 'undefined') {
+      const guardadas = localStorage.getItem('enfermedadesSeleccionadas');
+      if (guardadas) {
+        try {
+          return JSON.parse(guardadas);
+        } catch (error) {
+          console.error('Error al cargar selecciones:', error);
+        }
+      }
+    }
+    return [];
+  });
   const [busqueda, setBusqueda] = useState('');
+
+  // Guardar en localStorage cada vez que cambian las selecciones
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (seleccionadas.length > 0) {
+        localStorage.setItem('enfermedadesSeleccionadas', JSON.stringify(seleccionadas));
+      } else {
+        localStorage.removeItem('enfermedadesSeleccionadas');
+      }
+    }
+  }, [seleccionadas]);
 
   useEffect(() => {
     // Cargar el CSV
@@ -60,6 +84,12 @@ export default function Home() {
     link.click();
   };
 
+  const limpiarSeleccion = () => {
+    if (confirm('¿Estás seguro de que deseas limpiar todas las selecciones?')) {
+      setSeleccionadas([]);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -71,6 +101,12 @@ export default function Home() {
           <p className="text-gray-600 dark:text-gray-300">
             Selecciona las enfermedades que deseas incluir en tu exportación
           </p>
+          {seleccionadas.length > 0 && (
+            <p className="text-sm text-green-600 dark:text-green-400 mt-2 flex items-center justify-center gap-2">
+              <span>✓</span>
+              <span>Guardado automáticamente en tu navegador</span>
+            </p>
+          )}
         </div>
 
         {/* Barra de búsqueda */}
@@ -92,13 +128,22 @@ export default function Home() {
               {seleccionadas.length}
             </p>
           </div>
-          <button
-            onClick={descargarCSV}
-            disabled={seleccionadas.length === 0}
-            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 disabled:hover:scale-100 disabled:cursor-not-allowed"
-          >
-            📥 Descargar CSV ({seleccionadas.length})
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={limpiarSeleccion}
+              disabled={seleccionadas.length === 0}
+              className="px-6 py-4 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 disabled:hover:scale-100 disabled:cursor-not-allowed"
+            >
+              🗑️ Limpiar
+            </button>
+            <button
+              onClick={descargarCSV}
+              disabled={seleccionadas.length === 0}
+              className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold rounded-xl shadow-lg transition-all transform hover:scale-105 disabled:hover:scale-100 disabled:cursor-not-allowed"
+            >
+              📥 Descargar CSV ({seleccionadas.length})
+            </button>
+          </div>
         </div>
 
         {/* Grid de dos columnas */}
